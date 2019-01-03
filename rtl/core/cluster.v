@@ -24,46 +24,50 @@
 module cluster
     #(parameter NUM_CORES = 16)
 
-    (input          clk,
-    input           reset,
-    input  [15:0]   device_data_in,
-    output          device_write_en,
-    output          device_read_en,
-    output [9:0]    device_addr,
-    output [15:0]   device_data_out,
-    output reg [$clog2(NUM_CORES) - 1:0] device_core_id,
+    (input          clk, // 클락
+    input           reset, // 리셋
+    input  [15:0]   device_data_in, // 외부 메모리에서 읽은 데이터
+    output          device_write_en, // 외부 메모리 쓰기 활성화
+    output          device_read_en, // 외부 메모리 읽기 활성화
+    output [9:0]    device_addr, // 외부 메모리에 접근할 어드레스
+    output [15:0]   device_data_out, // 외부 메모리에 쓸 데이터
+    output reg [$clog2(NUM_CORES) - 1:0] device_core_id, // 코어 id
 
-    input           axi_we,
-    input  [15:0]   axi_addr,
-    input  [15:0]   axi_data,
-    output [15:0]   axi_q);
+    input           axi_we, // response
+    input  [15:0]   axi_addr, // response
+    input  [15:0]   axi_data, // response
+    output [15:0]   axi_q); // ?
     
-    localparam LOCAL_MEMORY_SIZE = 512;
-    localparam GLOBAL_MEMORY_SIZE = 1024;
-    localparam GMEM_ADDR_WIDTH = $clog2(GLOBAL_MEMORY_SIZE);
+	//---
+	
+    localparam LOCAL_MEMORY_SIZE = 512; // 지역 메모리 크기
+    localparam GLOBAL_MEMORY_SIZE = 1024; // 전역 메모리 크기
+    localparam GMEM_ADDR_WIDTH = $clog2(GLOBAL_MEMORY_SIZE); // 전역 메모리 어드레스 위드
     
-    wire[15:0] memory_addr;
-    wire[15:0] core_memory_addr [0:NUM_CORES-1];
+    wire[15:0] memory_addr; // 접근할 메모리의 주소
+    wire[15:0] core_memory_addr [0:NUM_CORES-1]; // 메모리 주소를 코어별로 따로 저장
     
-    wire[15:0] memory_read_val;
+    wire[15:0] memory_read_val; // 메모리에서 읽은 데이터
     
-    wire memory_wren;
-    wire core_memory_wren [NUM_CORES-1:0];
+    wire memory_wren; // 메모리 쓰기 신호
+    wire core_memory_wren [NUM_CORES-1:0]; // 코어별로 따로 저장
     
-    wire memory_rden;
-    wire core_memory_rden [NUM_CORES-1:0];
+    wire memory_rden; // 메모리 읽기 신호
+    wire core_memory_rden [NUM_CORES-1:0]; // 코어별로 따로 저장
     
-    wire[15:0] memory_write_val;
-    wire[15:0] core_memory_write_val[0:NUM_CORES-1];
+    wire[15:0] memory_write_val; // 메모리에 쓸 데이터
+    wire[15:0] core_memory_write_val[0:NUM_CORES-1]; // 코어별로 따로 저장
     
-    wire[15:0] global_mem_q;
-    wire device_memory_select;
-    reg device_memory_select_l;
-    wire global_mem_write;
-    wire[NUM_CORES-1:0] core_enable;
-    wire[NUM_CORES-1:0] core_request;
+    wire[15:0] global_mem_q; // 글로벌 메모리에서 읽은 데이터
+    wire device_memory_select; // 메모리 어드레스에 따라 접근할 메모리가 다른데, 그 selector임.
+    reg device_memory_select_l; // 외부 메모리에서 읽은 데이터냐 글로벌 메모리에서 읽은 데이터냐
+    wire global_mem_write; // 글로벌 메모리가 선택되어져 있으면서 메모리 쓰기가 활성화되어 있으면? = 글로벌 메모리 쓰기 활성화!
+    wire[NUM_CORES-1:0] core_enable; // 글로벌 메모리에 접근할 권한 같음. 잘은 모르겠음
+    wire[NUM_CORES-1:0] core_request; // 글로벌 메모리 접근 요청
     
-    assign memory_wren = core_memory_wren[device_core_id];
+	//---
+	
+    assign memory_wren = core_memory_wren[device_core_id]; // 선택된 코어의 wren rden addr val을 select하는 과정
     assign memory_rden = core_memory_rden[device_core_id];
     assign memory_addr = core_memory_addr[device_core_id];
     assign memory_write_val = core_memory_write_val[device_core_id];
