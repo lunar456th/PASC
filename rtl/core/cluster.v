@@ -70,16 +70,16 @@ module cluster
     assign memory_wren = core_memory_wren[device_core_id]; // 선택된 코어의 wren rden addr val을 select하는 과정
     assign memory_rden = core_memory_rden[device_core_id];
     assign memory_addr = core_memory_addr[device_core_id];
-    assign memory_write_val = core_memory_write_val[device_core_id];
+    assign memory_write_val = core_memory_write_val[device_core_id]; // device_core_id번 코어의 write_val을 활성화하겠다는 뜻.
 
     genvar i;
     generate
         for (i = 0; i < NUM_CORES; i = i + 1)
         begin: core
-            core #(LOCAL_MEMORY_SIZE) inst (
+            core #(LOCAL_MEMORY_SIZE) inst ( // ★★
                 .clk(clk),
                 .reset(reset),
-                .core_enable(core_enable[i]),
+                .core_enable(core_enable[i]), // 각 코어의 input/output을 wire로 가지고 있음
                 .core_request(core_request[i]),
                 .memory_addr(core_memory_addr[i]),
                 .memory_wren(core_memory_wren[i]),    
@@ -89,15 +89,15 @@ module cluster
         end
     endgenerate
 
-    assign device_memory_select = memory_addr[15:10] == 6'b111111;
-    assign device_addr = memory_addr[9:0];
-    assign global_mem_write = !device_memory_select && memory_wren;
-    assign memory_read_val = device_memory_select_l ? device_data_in : global_mem_q;
-    assign device_write_en = device_memory_select && memory_wren; 
-    assign device_read_en = device_memory_select && memory_rden;
-    assign device_data_out = memory_write_val;
+    assign device_memory_select = memory_addr[15:10] == 6'b111111; // 메모리 주소에 따라 다른 디바이스에서 가져옴
+    assign device_addr = memory_addr[9:0]; // 1KB 크기.
+    assign global_mem_write = !device_memory_select && memory_wren; // !device_memory_select는 global_memory_select와 같음, 즉 global_memory_select and global_memory_wren
+    assign memory_read_val = device_memory_select_l ? device_data_in : global_mem_q; // 외부 메모리에서 가져온 데이터를 취할지 글로벌 메모리에서 가져온 데이터를 취할지
+    assign device_write_en = device_memory_select && memory_wren; // 마찬가지로 외부 메모리면서 wren이면
+    assign device_read_en = device_memory_select && memory_rden; // 마찬가지로 rden
+    assign device_data_out = memory_write_val; // 디바이스에 쓸 데이터. device 관련 모든 wire들은 output으로 axi로 들어감
 
-    // Convert one-hot to binary
+    // Convert one-hot to binary = encoding?
     integer oh_index;
     always @*
     begin : convert
